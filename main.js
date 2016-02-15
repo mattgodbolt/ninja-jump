@@ -1,3 +1,5 @@
+var ninja;
+
 function start() {
 // You can use either `new PIXI.WebGLRenderer`, `new PIXI.CanvasRenderer`, or `PIXI.autoDetectRenderer`
 // which will try to choose the best renderer for the environment you are in.
@@ -9,23 +11,48 @@ function start() {
 // You need to create a root container that will hold the scene you want to draw.
     var stage = new PIXI.Container();
 
-    var bunny;
+    function Ninja(resources) {
+        var self = this;
+        self.sprites = {
+            running: new PIXI.Sprite(resources.ninjaRunning.texture),
+            standing: new PIXI.Sprite(resources.ninja.texture),
+        }
+        self.obj = new PIXI.Container();
+        self.obj.position.x = 50;
+        self.obj.position.y = 300;
+        self.obj.scale.x = 1;
+        self.obj.scale.y = 1;
+        stage.addChild(self.obj);
+        self.obj.addChild(self.sprites.running);
+        self.obj.addChild(self.sprites.standing);
+        self.sprites.running.visible = false;
+
+        self.vx = 0;
+
+        self.update = function() {
+            self.obj.position.x += self.vx;
+        };
+
+        self.move = function(dir) {
+            self.vx = dir;
+            if (dir) {
+                self.sprites.running.visible = true;
+                self.sprites.standing.visible = false;
+                self.obj.scale.x = (dir > 0) ? 1 : -1;
+            } else {
+                self.sprites.running.visible = false;
+                self.sprites.standing.visible = true;
+            }
+        };
+    }
+
 // load the texture we need
-    PIXI.loader.add('bunny', 'img/bunny.png').load(function (loader, resources) {
-        // This creates a texture from a 'bunny.png' image.
-        bunny = new PIXI.Sprite(resources.bunny.texture);
-
-        // Setup the position and scale of the bunny
-        bunny.position.x = 400;
-        bunny.position.y = 300;
-
-        bunny.scale.x = 2;
-        bunny.scale.y = 2;
-
-        // Add the bunny to the scene we are building.
-        stage.addChild(bunny);
-
-        // kick off the animation loop (defined below)
+    PIXI.loader
+        .add('ninjaRunning', 'img/RunningNinja.png')
+        .add('ninja', 'img/StandingNinja1.png')
+        .load(function (loader, resources) {
+            ninja = new Ninja(resources);
+       // kick off the animation loop (defined below)
         animate();
     });
 
@@ -33,10 +60,8 @@ function start() {
         // start the timer for the next animation loop
         requestAnimationFrame(animate);
 
-        // each frame we spin the bunny around a bit
-        bunny.rotation += 0.01;
+        ninja.update();
 
-        // this is the main render call that makes pixi draw your container and its children.
         renderer.render(stage);
     }
 }
@@ -44,3 +69,14 @@ function start() {
 window.onload = function() {
     console.log("it worked");
     start(); }
+window.addEventListener("keydown", function(event){
+    if (event.keyCode === 39) {
+        ninja.move(3);
+    } else if (event.keyCode === 37) {
+        ninja.move(-3);
+    }
+});
+
+window.addEventListener("keyup", function(event){
+    ninja.move(0);
+});
