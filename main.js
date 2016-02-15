@@ -1,44 +1,73 @@
 var ninja;
+var keysDown = {
+    left: false,
+    right: false,
+    jump: false
+};
+var keyMap = {37: 'left', 39: 'right', 32: 'jump'};
 
 function start() {
-// You can use either `new PIXI.WebGLRenderer`, `new PIXI.CanvasRenderer`, or `PIXI.autoDetectRenderer`
-// which will try to choose the best renderer for the environment you are in.
     var renderer = new PIXI.autoDetectRenderer(800, 600);
 
-// The renderer will create a canvas element for you that you can then insert into the DOM.
     document.body.appendChild(renderer.view);
 
-// You need to create a root container that will hold the scene you want to draw.
     var stage = new PIXI.Container();
 
     function Ninja(resources) {
         var self = this;
+        var scale = 0.5;
+        var gravity = 0.4;
+        var moveAcceleration = 2;
+        var maxSpeed = 4;
+        self.vx = 0;
+        self.vy = 0;
         self.sprites = {
             running: new PIXI.Sprite(resources.ninjaRunning.texture),
             standing: new PIXI.Sprite(resources.ninja.texture),
-        }
+        };
+        self.sprites.running.position.x = -20;
         self.obj = new PIXI.Container();
         self.obj.position.x = 50;
         self.obj.position.y = 300;
-        self.obj.scale.x = 1;
-        self.obj.scale.y = 1;
+        self.obj.scale.x = scale;
+        self.obj.scale.y = scale;
         stage.addChild(self.obj);
         self.obj.addChild(self.sprites.running);
         self.obj.addChild(self.sprites.standing);
         self.sprites.running.visible = false;
 
-        self.vx = 0;
+        self.update = function () {
+            if (keysDown.left) {
+                self.vx -= moveAcceleration;
+                if (self.vx < -maxSpeed) self.vx = -maxSpeed;
+            } else if (keysDown.right) {
+                self.vx += moveAcceleration;
+                if (self.vx > maxSpeed) self.vx = maxSpeed;
+            }
+            self.vx *= 0.8;
+            self.vy *= 0.95;
 
-        self.update = function() {
+            if (Math.abs(self.vx) < 0.1) self.vx = 0;
+            if (Math.abs(self.vy) < 0.1) self.vy = 0;
+
+            var standingOnGround = false;
+            if (self.obj.position.y >= 300) {
+                standingOnGround = true;
+                self.obj.position.y = 300;
+                self.vy = 0;
+            }
+            if (keysDown.jump && standingOnGround) {
+                self.vy = -10;
+            }
             self.obj.position.x += self.vx;
-        };
-
-        self.move = function(dir) {
-            self.vx = dir;
-            if (dir) {
+            self.obj.position.y += self.vy;
+            if (!standingOnGround) {
+                self.vy += gravity;
+            }
+            if (self.vx) {
                 self.sprites.running.visible = true;
                 self.sprites.standing.visible = false;
-                self.obj.scale.x = (dir > 0) ? 1 : -1;
+                self.obj.scale.x = (self.vx > 0) ? scale : -scale;
             } else {
                 self.sprites.running.visible = false;
                 self.sprites.standing.visible = true;
@@ -46,15 +75,14 @@ function start() {
         };
     }
 
-// load the texture we need
     PIXI.loader
         .add('ninjaRunning', 'img/RunningNinja.png')
         .add('ninja', 'img/StandingNinja1.png')
         .load(function (loader, resources) {
             ninja = new Ninja(resources);
-       // kick off the animation loop (defined below)
-        animate();
-    });
+            // kick off the animation loop (defined below)
+            animate();
+        });
 
     function animate() {
         // start the timer for the next animation loop
@@ -66,17 +94,21 @@ function start() {
     }
 }
 
-window.onload = function() {
-    console.log("it worked");
-    start(); }
-window.addEventListener("keydown", function(event){
-    if (event.keyCode === 39) {
-        ninja.move(3);
-    } else if (event.keyCode === 37) {
-        ninja.move(-3);
+window.onload = function () {
+    start();
+};
+window.addEventListener("keydown", function (event) {
+    var name = keyMap[event.keyCode];
+    if (name) {
+        keysDown[name] = true;
+        event.preventDefault();
     }
 });
 
-window.addEventListener("keyup", function(event){
-    ninja.move(0);
+window.addEventListener("keyup", function (event) {
+    var name = keyMap[event.keyCode];
+    if (name) {
+        keysDown[name] = false;
+        event.preventDefault();
+    }
 });
